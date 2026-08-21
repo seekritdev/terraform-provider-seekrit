@@ -1,0 +1,14 @@
+{
+  "token": "skt_UN3LHoB22GWOppqsJIhyqa_MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg9mT6jtgPn46e-Pg16skkmKGnw3vN5sW14d0Nn6rtnDqhRANCAAQPKYf0YTK0ZoXw-F_lsNbUuZfnothD7ORu-dF0nlt9DV2SzNpG4kWQL79MFheXBH6gokkPiPXhgiYDUK2j4Aa7",
+  "tokenId": "skt_UN3LHoB22GWOppqsJIhyqa",
+  "tokenHash": "4J1KVCDMBXu1SJ2QlJIamm9pjOUZGV2BbIb4zbYQa4s",
+  "publicKeyJwk": "{\"key_ops\":[],\"ext\":true,\"kty\":\"EC\",\"x\":\"DymH9GEytGaF8Phf5bDW1LmX56LYQ-zkbvnRdJ5bfQ0\",\"y\":\"XZLM2kbiRZAvv0wWF5cEfqCiSQ-I9eGCJgNQraPgBrs\",\"crv\":\"P-256\"}",
+  "dek": "SHW4CvWZAHZE1gZRVy9magCov_PtoA6TpxmYFkKZYM4",
+  "wrappedDek": "wd1.BMYTU1ThLmhAMlFxEAlZZUoyCqyUisVu26EC1lNZjYgTthgrx_l7yTFd8KT7Yntvgql-zPC8Xlk840OP73a7-OU.ZOY4Kr6cECg1VmFgaF4NFw.UEdttl5Qey_7N0Z-.t-BX0Wf91vLLmSByJUBTU52wdNPbtzeIsr5Y9FVnae5O1JFHvup1hE-sp_qT_Hha",
+  "recipientToken": "skt_EihpPXIPxb2pLoF4YLE8RN_MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgEXl6ZsUxxi_yIqrqV4je42E24ZpBvJtO1qOP91pr4OOhRANCAASYJJQM_xoUYGpf7SoTuTfpFyKvxhfNA6W9T2yZJUtWwIhVIsK-FStg60bTBmeG6xP9BmHVaOmYmLro4VStgVcW",
+  "recipientPublicKeyJwk": "{\"key_ops\":[],\"ext\":true,\"kty\":\"EC\",\"x\":\"mCSUDP8aFGBqX-0qE7k36Rcir8YXzQOlvU9smSVLVsA\",\"y\":\"iFUiwr4VK2DrRtMGZ4brE_0GYdVo6ZiYuujhVK2BVxY\",\"crv\":\"P-256\"}",
+  "environmentId": "env_vectors",
+  "secretName": "DATABASE_URL",
+  "secretPlaintext": "postgres://user:pw@db.internal:5432/app?sslmode=require",
+  "secretCiphertext": "sc1.RMuCWMyqWNUBfVZt.KQ0Bpyy99GDVN9KHIQzJPbzZZqWyp_q-SDfl_1bYhzmQviAIgaG87vIwLNvx43wkHFyEtVFGrmoeN237d3VeFffrkLCgEZE"
+}

@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars (gitignored) or supply these from CI as TF_VAR_*.
+# Both variables are declared `ephemeral`, so Terraform will not write them to
+# state or to a plan file — but a tfvars file on disk is still a file on disk.
+# In CI, prefer TF_VAR_ environment variables sourced from your existing secret
+# store, or bootstrap from an existing seekrit environment with the
+# `seekrit_secrets` ephemeral resource.
+
+web_production_secrets = {
+  DATABASE_URL      = "postgres://app:CHANGEME@db.internal:5432/app"
+  STRIPE_SECRET_KEY = "sk_live_CHANGEME"
+}
+
+datadog_api_key = "CHANGEME"

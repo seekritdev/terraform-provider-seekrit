@@ -1,0 +1,30 @@
+# CI for this mirror: fmt, vet, and the test suite — including the
+# cross-implementation crypto vectors that prove this Go code is byte-compatible
+# with seekrit's WebCrypto implementation. Nothing here publishes; releases are
+# cut by release.yml on a tag pushed from seekrit's monorepo. This file is
+# overwritten on each sync.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - run: go vet ./...
+      - run: go test ./...
+      - name: gofmt
+        if: runner.os != 'Windows'
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)

@@ -1,0 +1,58 @@
+# Build and publish a provider release for the Terraform Registry.
+#
+# The Registry ingests releases from THIS repository: on a `v*` tag it fetches
+# the per-platform zips and the `_SHA256SUMS`, verifies the detached GPG
+# signature against the public key registered on the Registry, reads
+# terraform-registry-manifest.json for the protocol version, and serves the new
+# version. So publishing is exactly "attach the right assets to the tag's
+# release", which is all GoReleaser does here.
+#
+# The tag is pushed by seekrit's monorepo (sync-terraform-provider-repo.yml)
+# after release-please decides the version, so this workflow never chooses one.
+# Don't tag by hand — the monorepo's manifest is the source of truth.
+#
+# Requires two repository secrets HERE (this is where GoReleaser runs):
+#   - GPG_PRIVATE_KEY: ASCII-armored private key used to sign the checksums. Its
+#     public half must be registered on the Terraform Registry (one-time).
+#   - PASSPHRASE:      passphrase for that key.
+#
+# This file is overwritten on each sync from the monorepo.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # create the release and upload its assets
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # GoReleaser derives the version from the tag and wants full history.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,150 @@
+---
+page_title: "seekrit Provider"
+description: |-
+  Manage seekrit — applications, environments, groups, service tokens, key grants, and secrets — as infrastructure-as-code, without secret values entering Terraform state.
+---
+
+# seekrit Provider
+
+[seekrit](https://seekrit.dev) is an end-to-end encrypted secrets manager: secret
+values are encrypted and decrypted by clients, and the service stores ciphertext
+it cannot read. This provider is one of those clients.
+
+That shapes the whole provider, because Terraform's default habit — record
+everything in state — is the one thing a zero-knowledge system cannot allow.
+So secret values move through Terraform in the two places where it promises not
+to keep them:
+
+- **Writing** uses a [write-only argument](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)
+  (`seekrit_secret.value_wo`, Terraform 1.11+). The value reaches the provider
+  during apply and is stored in neither state nor the plan file. The provider
+  encrypts it under the environment's data key before it leaves the process.
+- **Reading** uses [ephemeral resources](https://developer.hashicorp.com/terraform/language/resources/ephemeral)
+  (`ephemeral.seekrit_secret`, `ephemeral.seekrit_secrets`, Terraform 1.10+).
+  Terraform holds the result for the operation that needs it and discards it.
+
+There is deliberately no `data "seekrit_secret"` — a data source would put
+plaintext in state, which is exactly what this provider exists not to do.
+
+## Example Usage
+
+```terraform
+terraform {
+  # 1.11 for write-only arguments (`seekrit_secret.value_wo`); 1.10 introduced
+  # the ephemeral resources this provider uses to hand out secret values.
+  required_version = ">= 1.11.0"
+
+  required_providers {
+    seekrit = {
+      source  = "seekritdev/seekrit"
+      version = "~> 0.1"
+    }
+  }
+}
+
+# Every argument falls back to an environment variable, so CI can configure the
+# provider without any of this appearing in the configuration.
+provider "seekrit" {
+  endpoint = "https://api.seekrit.dev" # or SEEKRIT_API_URL
+  org_id   = "org_your_org_id"         # or SEEKRIT_ORG
+  token    = var.seekrit_token         # or SEEKRIT_TOKEN
+}
+
+# An admin service token: `seekrit token create --admin --name terraform`. It must
+# be admin because this provider creates applications, mints tokens, grants keys.
+#
+# The token string embeds its own private key. That is what lets the provider do
+# the client-side crypto — wrapping environment DEKs, re-wrapping them for
+# grants, encrypting secret values — without seekrit ever holding a key.
+variable "seekrit_token" {
+  type      = string
+  sensitive = true
+
+  validation {
+    condition     = startswith(var.seekrit_token, "skt_")
+    error_message = "Expected a service token (`skt_…`). User credentials (`skc_…`) cannot mint tokens or grant keys."
+  }
+}
+```
+
+## Authentication
+
+The provider authenticates with an **admin service token**:
+
+```sh
+seekrit token create --admin --name terraform
+```
+
+It has to be admin, because creating applications, minting tokens, and granting
+keys are admin operations. A member token can read and write secrets in the
+environments it holds keys for and nothing else.
+
+The token string carries its own private key — that is what lets a client do the
+crypto without seekrit holding a key. Two consequences worth internalising:
+
+1. **The token is the key material.** Leaking it leaks every environment it holds
+   a grant on. Treat it like a root credential; scope it to one org, and rotate
+   it by minting a replacement and revoking the old one.
+2. **The provider can only encrypt for environments it can decrypt.** Writing a
+   secret needs the environment's data key, which the provider gets by unwrapping
+   its own grant. Environments this provider created have one automatically;
+   for an environment created elsewhere, grant the Terraform token access first
+   (`seekrit grant`, or a `seekrit_environment_key_grant` resource).
+
+Every argument falls back to an environment variable — `SEEKRIT_API_URL`,
+`SEEKRIT_ORG`, `SEEKRIT_TOKEN` — so CI configures the provider without the
+credential appearing in the configuration.
+
+## What does end up in state
+
+No secret value, in either direction. One credential does: the token
+`seekrit_service_token` mints is returned exactly once, by the call that creates
+it, so a resource that creates a credential has nowhere else to keep it. This is
+the same trade `aws_iam_access_key.secret` makes. **Use an encrypted state
+backend**, and prefer piping the token straight into its consumer over printing
+it.
+
+Everything else in state is metadata: ids, names, slugs, timestamps, version
+counters, and public keys.
+
+## Modules
+
+Three modules cover the shapes that otherwise repeat. They live alongside the
+provider in [its repository](https://github.com/seekritdev/terraform-provider-seekrit/tree/main/modules):
+
+| Module | What it encapsulates |
+| --- | --- |
+| `modules/application` | An application, its environments, the groups each composes, and per-environment runtime tokens with their key grants. |
+| `modules/group` | A shared group and its environments, with slugs that line up for composition. |
+| `modules/service-token` | One token plus grants on several environments — the pairing that is easy to get half-right by hand. |
+
+```hcl
+module "web" {
+  source = "git::https://github.com/seekritdev/terraform-provider-seekrit.git//modules/application?ref=v0.1.0"
+
+  name = "Web"
+  slug = "web"
+
+  environments = {
+    production = { groups = [module.shared.group_id] }
+    staging    = {}
+  }
+
+  runtime_tokens = {
+    ci = { environment = "production" }
+  }
+}
+```
+
+Always pin `ref` to a tag.
+
+## Schema
+
+<!-- schema generated by tfplugindocs -->
+## Schema
+
+### Optional
+
+- `endpoint` (String) Base URL of the seekrit API (defaults to the `SEEKRIT_API_URL` environment variable).
+- `org_id` (String) The organization id (`org_…`) all resources belong to (defaults to the `SEEKRIT_ORG` environment variable).
+- `token` (String, Sensitive) An admin service token (`skt_…`) (defaults to the `SEEKRIT_TOKEN` environment variable). The token string embeds its private key and is used for DEK wrapping.
