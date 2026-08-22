@@ -37,7 +37,7 @@ terraform {
   required_providers {
     seekrit = {
       source  = "seekritdev/seekrit"
-      version = "~> 0.1"
+      version = "~> 1.0" # >= 1.0.0, < 2.0.0
     }
   }
 }
@@ -118,9 +118,11 @@ provider in [its repository](https://github.com/seekritdev/terraform-provider-se
 | `modules/group` | A shared group and its environments, with slugs that line up for composition. |
 | `modules/service-token` | One token plus grants on several environments — the pairing that is easy to get half-right by hand. |
 
+<!-- x-release-please-start-version -->
+
 ```hcl
 module "web" {
-  source = "git::https://github.com/seekritdev/terraform-provider-seekrit.git//modules/application?ref=v0.1.0"
+  source = "git::https://github.com/seekritdev/terraform-provider-seekrit.git//modules/application?ref=v1.0.0"
 
   name = "Web"
   slug = "web"
@@ -135,6 +137,8 @@ module "web" {
   }
 }
 ```
+
+<!-- x-release-please-end -->
 
 Always pin `ref` to a tag.
 

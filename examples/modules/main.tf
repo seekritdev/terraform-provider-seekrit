@@ -1,7 +1,9 @@
 # The three modules, minimally. Sources are relative here because they live in
 # this repository; from outside, source them from the mirror:
 #
-#   source = "git::https://github.com/seekritdev/terraform-provider-seekrit.git//modules/application?ref=v0.1.0"
+# x-release-please-start-version
+#   source = "git::https://github.com/seekritdev/terraform-provider-seekrit.git//modules/application?ref=v1.0.0"
+# x-release-please-end
 #
 # Always pin `ref` to a tag. An unpinned module source means a `terraform init`
 # can change what your infrastructure is.

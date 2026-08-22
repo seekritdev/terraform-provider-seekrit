@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -123,4 +125,79 @@ func providerSources(file *hcl.File) []string {
 		}
 	}
 	return sources
+}
+
+// moduleRefPattern matches the pinned tag in a module git source, the
+// `ref` query parameter on a `git::` URL. Every occurrence in the shipped text
+// is something a reader is meant to copy, so every one has to name the current
+// release. (Written without a literal example on purpose — this test scans its
+// own file too, and an illustrative tag in a comment would fail it.)
+var moduleRefPattern = regexp.MustCompile(`\?ref=v(\d+\.\d+\.\d+)`)
+
+// TestPinnedModuleRefsMatchTheRelease is the backstop behind release-please.
+//
+// The `?ref=` tags are rewritten on each release by the `extra-files` entries in
+// release-please-config.json, which only reach the files listed there. Adding a
+// sixth snippet somewhere and forgetting to list it is silent: the docs keep
+// advertising an old tag, which still resolves, so nothing breaks loudly — it
+// just quietly hands people stale modules. This finds that.
+//
+// Skipped when the monorepo is not around, which is how it behaves on the public
+// mirror: the mirror gets only this directory, so there is no manifest to check
+// against and the check has already run in the monorepo that produced the sync.
+func TestPinnedModuleRefsMatchTheRelease(t *testing.T) {
+	const manifestPath = "../../.release-please-manifest.json"
+	raw, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Skipf("no monorepo manifest at %s (expected on the public mirror): %v", manifestPath, err)
+	}
+	var manifest map[string]string
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		t.Fatalf("parse %s: %v", manifestPath, err)
+	}
+	want, ok := manifest["apps/terraform-provider-seekrit"]
+	if !ok {
+		t.Fatal("the provider has no entry in .release-please-manifest.json")
+	}
+
+	// This directory, plus the one documentation page that lives outside it.
+	roots := []string{".", "../../apps/site/src/app/docs/guides/terraform"}
+	checked := 0
+	for _, root := range roots {
+		err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.IsDir() {
+				// The changelog is a historical record; old tags belong in it.
+				if name := d.Name(); name == ".git" || name == "dist" {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if strings.HasSuffix(path, "CHANGELOG.md") {
+				return nil
+			}
+			body, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			for _, match := range moduleRefPattern.FindAllStringSubmatch(string(body), -1) {
+				checked++
+				if match[1] != want {
+					t.Errorf("%s pins module ref v%s, but the released version is v%s — "+
+						"add this file to the provider's `extra-files` in "+
+						"release-please-config.json so the tag is rewritten on release",
+						path, match[1], want)
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("walk %s: %v", root, err)
+		}
+	}
+	if checked == 0 {
+		t.Error("found no `?ref=vX.Y.Z` module sources — this test is not checking anything")
+	}
 }

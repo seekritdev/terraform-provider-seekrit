@@ -11,7 +11,7 @@ terraform {
   required_providers {
     seekrit = {
       source  = "seekritdev/seekrit"
-      version = "~> 0.1"
+      version = "~> 1.0"
     }
   }
 }

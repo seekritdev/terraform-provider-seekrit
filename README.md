@@ -43,7 +43,7 @@ terraform {
   required_providers {
     seekrit = {
       source  = "seekritdev/seekrit"
-      version = "~> 0.1"
+      version = "~> 1.0"
     }
   }
 }
@@ -198,17 +198,60 @@ hand.
 
 ## Releasing
 
-Two moving parts, because the Terraform Registry can only ingest releases from a
-**public** repository:
+Fully automated on a Release PR merge — no manual tagging, the same shape the
+[language SDKs](../../README.md#language-sdks) use. It takes two stages because
+the Terraform Registry can only ingest releases from a **public** repository, and
+wants a bare `vX.Y.Z` tag that this monorepo's component-prefixed tags cannot be:
 
-1. **release-please** (in this monorepo) bumps the version on a `feat`/`fix`
-   commit under `apps/terraform-provider-seekrit/**` and tags `v{VERSION}` — a
-   bare tag with no component prefix, which the Registry requires.
-2. **`sync-terraform-provider-repo.yml`** mirrors this directory to
-   `seekritdev/terraform-provider-seekrit` and pushes the matching tag there.
-   The mirror's own `release.yml` runs **GoReleaser** on that tag, producing the
-   Registry layout — per-platform zips, a **GPG-signed** `_SHA256SUMS`, and
-   `terraform-registry-manifest.json` — and the Registry ingests it.
+1. **release-please** bumps the version on a `feat`/`fix` commit under
+   `apps/terraform-provider-seekrit/**`, and merging its Release PR tags
+   `terraform-provider-vX.Y.Z` **here** and writes `CHANGELOG.md`.
+2. That CHANGELOG write is under the paths
+   **`sync-terraform-provider-repo.yml`** watches, so the same commit runs the
+   sync: it mirrors this directory to `seekritdev/terraform-provider-seekrit` and
+   pushes a bare `vX.Y.Z` **there**, read from `.release-please-manifest.json`.
+   The mirror's own `release.yml` fires on that tag and runs **GoReleaser**,
+   producing the Registry layout — per-platform zips, a **GPG-signed**
+   `_SHA256SUMS`, and `terraform-registry-manifest.json`.
+
+Two details that make the chain work, both easy to break:
+
+- The mirror push uses an **SSH deploy key**, not `GITHUB_TOKEN`. A tag pushed
+  with `GITHUB_TOKEN` does not trigger workflows, so the mirror's release would
+  never run.
+- The tag step is **idempotent** and not gated on whether the sync committed
+  anything. Re-running it is a no-op, and a manual **workflow_dispatch**
+  backfills a tag that was missed — which is the recovery hatch if a release ever
+  looks stranded. If a Registry version looks stale, check the mirror's tags
+  first: the monorepo's `terraform-provider-v*` tag is *not* the release tag.
+
+### Version references stay current by themselves
+
+Two kinds of version appear in this tree, and only one of them can go stale.
+
+**Constraints are ranges.** `version = "~> 1.0"` means >= 1.0.0, < 2.0.0, so it
+stays correct for every 1.x release and is touched exactly once, at 2.0. Nothing
+to maintain.
+
+**Pinned module tags are literals.** `?ref=v1.0.0` in a `git::` module source has
+to name a real release, and there are five places that show one. Those are
+rewritten on every release by the `extra-files` entries in
+`release-please-config.json`, using `x-release-please-start-version` /
+`x-release-please-end` markers around each snippet. Block markers rather than the
+inline `x-release-please-version` form on purpose: the inline one has to sit on
+the same line as the version, which would put it inside a fenced code block a
+reader is meant to copy. The block markers sit outside the fence as HTML (or MDX)
+comments and render as nothing.
+
+That covers the files release-please is told about, which is the weak point: add
+a sixth snippet, forget the config entry, and the docs quietly advertise an old
+tag forever — it still resolves, so nothing fails loudly. `TestPinnedModuleRefsMatchTheRelease`
+in `hcl_test.go` is the backstop: it scans this directory and the site guide for
+`?ref=` tags and fails if any disagrees with `.release-please-manifest.json`. It
+skips when the manifest is absent, which is how it behaves on the public mirror.
+
+So: adding a snippet with a pinned tag means adding the markers *and* the
+`extra-files` entry. The test tells you if you forgot.
 
 One-time setup, out of band:
 
