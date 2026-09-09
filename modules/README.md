@@ -25,7 +25,7 @@ provider's repository with a pinned tag:
 
 ```hcl
 module "web" {
-  source = "git::https://github.com/seekritdev/terraform-provider-seekrit.git//modules/application?ref=v1.0.0"
+  source = "git::https://github.com/seekritdev/terraform-provider-seekrit.git//modules/application?ref=v1.0.1"
 
   name = "Web"
   slug = "web"

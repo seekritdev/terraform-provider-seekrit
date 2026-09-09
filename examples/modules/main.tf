@@ -2,7 +2,7 @@
 # this repository; from outside, source them from the mirror:
 #
 # x-release-please-start-version
-#   source = "git::https://github.com/seekritdev/terraform-provider-seekrit.git//modules/application?ref=v1.0.0"
+#   source = "git::https://github.com/seekritdev/terraform-provider-seekrit.git//modules/application?ref=v1.0.1"
 # x-release-please-end
 #
 # Always pin `ref` to a tag. An unpinned module source means a `terraform init`
