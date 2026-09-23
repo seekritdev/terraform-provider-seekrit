@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/mileszim/seekrit/compare/terraform-provider-v1.0.1...terraform-provider-v1.0.2) (2026-09-23)
+
+
+### Dependencies
+
+* **deps:** bump github.com/hashicorp/hcl/v2 from 2.24.0 to 2.25.0 in /apps/terraform-provider-seekrit in the go group across 1 directory ([#450](https://github.com/mileszim/seekrit/issues/450)) ([6320d41](https://github.com/mileszim/seekrit/commit/6320d413b0c817b71cf7084e16974562d7388d85))
+
 ## [1.0.1](https://github.com/mileszim/seekrit/compare/terraform-provider-v1.0.0...terraform-provider-v1.0.1) (2026-09-09)
 
 
