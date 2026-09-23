@@ -233,7 +233,7 @@ Two kinds of version appear in this tree, and only one of them can go stale.
 stays correct for every 1.x release and is touched exactly once, at 2.0. Nothing
 to maintain.
 
-**Pinned module tags are literals.** `?ref=v1.0.0` in a `git::` module source has
+**Pinned module tags are literals.** A `?ref=vX.Y.Z` suffix in a `git::` module source has
 to name a real release, and there are five places that show one. Those are
 rewritten on every release by the `extra-files` entries in
 `release-please-config.json`, using `x-release-please-start-version` /
