@@ -26,6 +26,10 @@ to keep them:
 There is deliberately no `data "seekrit_secret"` — a data source would put
 plaintext in state, which is exactly what this provider exists not to do.
 
+The walkthrough, with a full example and the module layout, is the
+[Terraform guide](https://seekrit.dev/docs/guides/terraform); the key hierarchy
+the provider speaks is in [Encryption model](https://seekrit.dev/docs/concepts/encryption).
+
 ## Example Usage
 
 ```terraform
