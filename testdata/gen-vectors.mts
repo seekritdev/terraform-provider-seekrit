@@ -14,6 +14,7 @@
 // module resolution (tsx strips types + resolves the extensionless graph).
 import {
   createServiceToken,
+  serviceTokenAuth,
   encryptSecret,
   generateDek,
   secretAad,
@@ -53,6 +54,7 @@ const vectors = {
   // Token scheme: parse → (tokenId, privateKey); hashToken(token) === tokenHash;
   // publicKeyJwk is derivable from the private key.
   token: principal.token,
+  authToken: serviceTokenAuth(principal.token),
   tokenId: principal.tokenId,
   tokenHash: principal.tokenHash,
   publicKeyJwk: principal.publicKeyJwk,

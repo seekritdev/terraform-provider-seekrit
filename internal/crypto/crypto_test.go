@@ -65,7 +65,7 @@ func TestTokenParseMatchesVectors(t *testing.T) {
 	if tokenID != v.TokenID {
 		t.Errorf("tokenID = %q, want %q", tokenID, v.TokenID)
 	}
-	if got := HashToken(v.Token); got != v.TokenHash {
+	if got := HashToken(strings.Join(strings.Split(v.Token, ".")[:2], ".")); got != v.TokenHash {
 		t.Errorf("HashToken = %q, want %q", got, v.TokenHash)
 	}
 	gotJWK, err := PublicKeyJWK(priv)
@@ -158,7 +158,7 @@ func TestSelfRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateServiceToken: %v", err)
 	}
-	if HashToken(created.Token) != created.TokenHash {
+	if HashToken(strings.Join(strings.Split(created.Token, ".")[:2], ".")) != created.TokenHash {
 		t.Error("self hash mismatch")
 	}
 	tokenID, priv, err := ParseServiceToken(created.Token)
@@ -205,7 +205,7 @@ func TestGoPKCS8IsWebCryptoCompatible(t *testing.T) {
 	if idx < 0 {
 		t.Fatal("malformed vector token")
 	}
-	origPKCS8, err := b64.DecodeString(rest[idx+1:])
+	origPKCS8, err := b64.DecodeString(strings.Split(v.Token, ".")[2])
 	if err != nil {
 		t.Fatalf("decode pkcs8: %v", err)
 	}

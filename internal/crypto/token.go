@@ -6,15 +6,15 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
 // Service tokens are self-contained principals: the token string itself carries
-// the private key, so the server never holds it. The server stores only the
-// SHA-256 hash of the full token (for authentication) and the public key (for
-// wrapping DEK grants).
+// private key alongside an independent random auth secret. Only ServiceTokenAuth
+// is sent to the server, which stores its SHA-256 hash and the public key.
 //
-// Format: skt_<22-char base62 id>_<pkcs8 private key, base64url>
+// Bundle: skt_<22-char base62 id>_v2.<auth secret>.<pkcs8 private key, base64url>
 // (packages/crypto/src/token.ts).
 const (
 	tokenPrefix   = "skt"
@@ -29,7 +29,7 @@ type CreatedServiceToken struct {
 	Token string
 	// TokenID is the public skt_… identifier, safe to store and display.
 	TokenID string
-	// TokenHash is base64url(SHA-256(token)) — what the server stores for auth.
+	// TokenHash is base64url(SHA-256(wire auth credential)) — what the server stores for auth.
 	TokenHash string
 	// PublicKeyJWK is stored server-side to wrap DEK grants for this token.
 	PublicKeyJWK string
@@ -79,7 +79,12 @@ func CreateServiceToken() (CreatedServiceToken, error) {
 	if err != nil {
 		return CreatedServiceToken{}, err
 	}
-	token := tokenID + "_" + b64.EncodeToString(pkcs8)
+	authBytes := make([]byte, 32)
+	if _, err := rand.Read(authBytes); err != nil {
+		return CreatedServiceToken{}, err
+	}
+	auth := tokenID + "_v2." + b64.EncodeToString(authBytes)
+	token := auth + "." + b64.EncodeToString(pkcs8)
 	pubJWK, err := publicKeyJWK(priv.PublicKey())
 	if err != nil {
 		return CreatedServiceToken{}, err
@@ -87,9 +92,20 @@ func CreateServiceToken() (CreatedServiceToken, error) {
 	return CreatedServiceToken{
 		Token:        token,
 		TokenID:      tokenID,
-		TokenHash:    HashToken(token),
+		TokenHash:    HashToken(auth),
 		PublicKeyJWK: pubJWK,
 	}, nil
+}
+
+var serviceAuthRE = regexp.MustCompile(`^(skt_[0-9A-Za-z]+_v2\.[A-Za-z0-9_-]{43})(?:\.[A-Za-z0-9_-]+)?$`)
+
+// ServiceTokenAuth returns only the independent authentication credential.
+func ServiceTokenAuth(token string) (string, error) {
+	m := serviceAuthRE.FindStringSubmatch(token)
+	if m == nil {
+		return "", fmt.Errorf("a v2 service token is required for API access; replace legacy tokens in the dashboard")
+	}
+	return m[1], nil
 }
 
 // IsServiceToken reports whether a credential is a seekrit service token.
@@ -113,6 +129,16 @@ func ParseServiceToken(token string) (tokenID string, priv *ecdh.PrivateKey, err
 	idSuffix, keyB64 := rest[:i], rest[i+1:]
 	if !isBase62(idSuffix) {
 		return "", nil, fmt.Errorf("not a valid seekrit service token")
+	}
+	if strings.HasPrefix(keyB64, "v2.") {
+		if _, err := ServiceTokenAuth(token); err != nil {
+			return "", nil, err
+		}
+		parts := strings.Split(keyB64, ".")
+		if len(parts) != 3 {
+			return "", nil, fmt.Errorf("auth credential has no private key")
+		}
+		keyB64 = parts[2]
 	}
 	pkcs8, err := b64.DecodeString(keyB64)
 	if err != nil {

@@ -261,3 +261,12 @@ One-time setup, out of band:
   is where GoReleaser runs).
 - Connect the provider on registry.terraform.io under the `seekritdev` namespace
   and register the matching **GPG public key** there.
+
+## Service token v2
+
+Keep one `SEEKRIT_TOKEN`: `skt_<id>_v2.<auth-secret>.<private-key>`.
+The client sends only `skt_<id>_v2.<auth-secret>` to the API and uses the private
+key locally to decrypt. Legacy tokens are rejected before any API request;
+upgrade clients and replace legacy tokens through the dashboard. A stolen
+HTTP credential cannot decrypt environment payloads, but stealing the full
+local bundle still exposes the private key. Treat the full bundle as a secret.

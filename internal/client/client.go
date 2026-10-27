@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	seekritcrypto "github.com/seekritdev/terraform-provider-seekrit/internal/crypto"
 	"io"
 	"net/http"
 	"strings"
@@ -92,7 +93,14 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) err
 		return fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("accept", "application/json")
-	req.Header.Set("authorization", "Bearer "+c.token)
+	token := strings.TrimSpace(c.token)
+	if seekritcrypto.IsServiceToken(token) {
+		token, err = seekritcrypto.ServiceTokenAuth(token)
+		if err != nil {
+			return err
+		}
+	}
+	req.Header.Set("authorization", "Bearer "+token)
 	req.Header.Set("user-agent", c.userAgent)
 	// Attributes API usage to Terraform in the product analytics (lib/events.ts),
 	// the same way the CLI and the SDKs identify themselves.
