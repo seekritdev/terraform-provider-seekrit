@@ -142,14 +142,24 @@ func (r *environmentResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	kind, id := "groups", plan.GroupID.ValueString()
+	if !plan.ApplicationID.IsNull() {
+		kind, id = "apps", plan.ApplicationID.ValueString()
+	}
+	userGrants, err := r.data.wrapAppRecipients(ctx, kind, id, dek)
+	if err != nil {
+		resp.Diagnostics.AddError("Error preparing app access", err.Error())
+		return
+	}
+
 	var env *client.Environment
 	switch {
 	case !plan.ApplicationID.IsNull():
 		env, err = r.data.client.CreateAppEnv(ctx, r.data.orgID, plan.ApplicationID.ValueString(),
-			plan.Name.ValueString(), plan.Slug.ValueString(), wrapped)
+			plan.Name.ValueString(), plan.Slug.ValueString(), wrapped, userGrants)
 	default:
 		env, err = r.data.client.CreateGroupEnv(ctx, r.data.orgID, plan.GroupID.ValueString(),
-			plan.Name.ValueString(), plan.Slug.ValueString(), wrapped)
+			plan.Name.ValueString(), plan.Slug.ValueString(), wrapped, userGrants)
 	}
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating environment", err.Error())

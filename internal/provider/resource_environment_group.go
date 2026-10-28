@@ -79,8 +79,13 @@ func (r *environmentGroupResource) Create(ctx context.Context, req resource.Crea
 		p := plan.Position.ValueInt64()
 		position = &p
 	}
+	accessGrants, err := r.data.wrapGroupAppAccess(ctx, plan.EnvironmentID.ValueString(), plan.GroupID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Error preparing app access", err.Error())
+		return
+	}
 	ref, err := r.data.client.LinkEnvGroup(ctx, r.data.orgID,
-		plan.EnvironmentID.ValueString(), plan.GroupID.ValueString(), position)
+		plan.EnvironmentID.ValueString(), plan.GroupID.ValueString(), position, accessGrants)
 	if err != nil {
 		resp.Diagnostics.AddError("Error linking group to environment", err.Error())
 		return
@@ -127,8 +132,13 @@ func (r *environmentGroupResource) Update(ctx context.Context, req resource.Upda
 		p := plan.Position.ValueInt64()
 		position = &p
 	}
+	accessGrants, err := r.data.wrapGroupAppAccess(ctx, plan.EnvironmentID.ValueString(), plan.GroupID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Error preparing app access", err.Error())
+		return
+	}
 	ref, err := r.data.client.LinkEnvGroup(ctx, r.data.orgID,
-		plan.EnvironmentID.ValueString(), plan.GroupID.ValueString(), position)
+		plan.EnvironmentID.ValueString(), plan.GroupID.ValueString(), position, accessGrants)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating group composition", err.Error())
 		return

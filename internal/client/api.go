@@ -164,12 +164,12 @@ func (c *Client) DeleteGroup(ctx context.Context, orgID, groupID string) error {
 
 // CreateAppEnv creates an application-owned environment. wrappedDek is the DEK
 // wrapped to the calling principal's public key (see internal/crypto).
-func (c *Client) CreateAppEnv(ctx context.Context, orgID, appID, name, slug, wrappedDek string) (*Environment, error) {
+func (c *Client) CreateAppEnv(ctx context.Context, orgID, appID, name, slug, wrappedDek string, userGrants ...[]UserGrant) (*Environment, error) {
 	var out struct {
 		Environment Environment `json:"environment"`
 	}
 	err := c.do(ctx, "POST", fmt.Sprintf("/v1/orgs/%s/apps/%s/envs", orgID, appID),
-		map[string]string{"name": name, "slug": slug, "wrappedDek": wrappedDek}, &out)
+		environmentBody(name, slug, wrappedDek, userGrants), &out)
 	if err != nil {
 		return nil, err
 	}
@@ -177,12 +177,12 @@ func (c *Client) CreateAppEnv(ctx context.Context, orgID, appID, name, slug, wra
 }
 
 // CreateGroupEnv creates a group-owned environment.
-func (c *Client) CreateGroupEnv(ctx context.Context, orgID, groupID, name, slug, wrappedDek string) (*Environment, error) {
+func (c *Client) CreateGroupEnv(ctx context.Context, orgID, groupID, name, slug, wrappedDek string, userGrants ...[]UserGrant) (*Environment, error) {
 	var out struct {
 		Environment Environment `json:"environment"`
 	}
 	err := c.do(ctx, "POST", fmt.Sprintf("/v1/orgs/%s/groups/%s/envs", orgID, groupID),
-		map[string]string{"name": name, "slug": slug, "wrappedDek": wrappedDek}, &out)
+		environmentBody(name, slug, wrappedDek, userGrants), &out)
 	if err != nil {
 		return nil, err
 	}
@@ -242,8 +242,11 @@ func (c *Client) ListEnvGroups(ctx context.Context, orgID, envID string) ([]Envi
 // LinkEnvGroup composes a group into an app environment. position is applied
 // when non-nil; otherwise the server appends after the current max. The upsert
 // is idempotent on (envId, groupId).
-func (c *Client) LinkEnvGroup(ctx context.Context, orgID, envID, groupID string, position *int64) (*EnvironmentGroupRef, error) {
+func (c *Client) LinkEnvGroup(ctx context.Context, orgID, envID, groupID string, position *int64, accessGrants ...[]AppAccessGrant) (*EnvironmentGroupRef, error) {
 	body := map[string]any{"groupId": groupID}
+	if len(accessGrants) > 0 {
+		body["appAccessGrants"] = accessGrants[0]
+	}
 	if position != nil {
 		body["position"] = *position
 	}
@@ -495,4 +498,36 @@ func (c *Client) PutSecret(ctx context.Context, orgID, envID, name, ciphertext s
 func (c *Client) DeleteSecret(ctx context.Context, orgID, envID, name string) error {
 	return c.do(ctx, "DELETE",
 		fmt.Sprintf("/v1/orgs/%s/envs/%s/secrets/%s", orgID, envID, url.PathEscape(name)), nil, nil)
+}
+
+// AppAccessRecipient is a persistent recipient of an application's environment keys.
+type AppAccessRecipient struct {
+	UserID       string `json:"userId"`
+	PublicKeyJWK string `json:"publicKeyJwk"`
+}
+type UserGrant struct {
+	UserID     string `json:"userId"`
+	WrappedDEK string `json:"wrappedDek"`
+}
+type AppAccessGrant struct {
+	EnvironmentID string `json:"environmentId"`
+	UserID        string `json:"userId"`
+	WrappedDEK    string `json:"wrappedDek"`
+}
+
+func environmentBody(name, slug, wrapped string, grants [][]UserGrant) map[string]any {
+	body := map[string]any{"name": name, "slug": slug, "wrappedDek": wrapped}
+	if len(grants) > 0 {
+		body["userGrants"] = grants[0]
+	}
+	return body
+}
+func (c *Client) AccessRecipients(ctx context.Context, orgID, kind, id string) ([]AppAccessRecipient, error) {
+	var out struct {
+		Recipients []AppAccessRecipient `json:"recipients"`
+	}
+	if err := c.do(ctx, "GET", fmt.Sprintf("/v1/orgs/%s/%s/%s/access-recipients", orgID, kind, id), nil, &out); err != nil {
+		return nil, err
+	}
+	return out.Recipients, nil
 }
