@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/mileszim/seekrit/compare/terraform-provider-v2.0.0...terraform-provider-v2.1.0) (2026-10-28)
+
+
+### Features
+
+* add member role editing and complete app key access ([#548](https://github.com/mileszim/seekrit/issues/548)) ([832e258](https://github.com/mileszim/seekrit/commit/832e258c9c0fbb2d25185d859c79f09fcfe90bf7))
+
 ## [2.0.0](https://github.com/mileszim/seekrit/compare/terraform-provider-v1.0.2...terraform-provider-v2.0.0) (2026-10-27)
 
 

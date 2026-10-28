@@ -126,7 +126,7 @@ provider in [its repository](https://github.com/seekritdev/terraform-provider-se
 
 ```hcl
 module "web" {
-  source = "git::https://github.com/seekritdev/terraform-provider-seekrit.git//modules/application?ref=v2.0.0"
+  source = "git::https://github.com/seekritdev/terraform-provider-seekrit.git//modules/application?ref=v2.1.0"
 
   name = "Web"
   slug = "web"
