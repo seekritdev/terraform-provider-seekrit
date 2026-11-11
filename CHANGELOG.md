@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/mileszim/seekrit/compare/terraform-provider-v2.1.0...terraform-provider-v2.2.0) (2026-11-11)
+
+
+### Features
+
+* **site:** one category sentence across site, llms.txt and package descriptions ([#580](https://github.com/mileszim/seekrit/issues/580)) ([7a3eb05](https://github.com/mileszim/seekrit/commit/7a3eb055806625b225f3f86491b54969a8c9fdda))
+
 ## [2.1.0](https://github.com/mileszim/seekrit/compare/terraform-provider-v2.0.0...terraform-provider-v2.1.0) (2026-10-28)
 
 
