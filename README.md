@@ -1,6 +1,7 @@
 # terraform-provider-seekrit
 
-Manage [seekrit](../../README.md) as infrastructure-as-code: applications,
+Manage [seekrit](https://seekrit.dev) — a zero-knowledge secrets manager and
+credential broker for AI agents — as infrastructure-as-code: applications,
 groups, environments, composition, service tokens, key grants, and secrets.
 
 The provider is an API client, like the CLI and `seekrit mcp` — all cryptography
